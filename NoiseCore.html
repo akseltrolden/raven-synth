@@ -1,0 +1,77 @@
+
+<div class="synth">
+  <h2>Raven Synth</h2>
+
+  <h3>Oscillator</h3>
+  <label>Frequency: <span id="frequencyValue">440</span> Hz</label>
+  <input id="frequency" type="range" min="100" max="2000" value="440">
+
+  <label>Amplitude: <span id="amplitudeValue">30</span>%</label>
+  <input id="amplitude" type="range" min="0" max="100" value="30">
+
+  <hr>
+
+  <h3>White Noise</h3>
+  <label>Amplitude: <span id="noiseValue">0</span>%</label>
+  <input id="noise" type="range" min="0" max="100" value="0">
+
+  <hr>
+
+  <button id="play">Play</button>
+  <button id="stop">Stop</button>
+</div>
+<script>
+
+class RavenNoise extends AudioWorkletProcessor {
+  static get parameterDescriptors() {
+    return [
+      {
+        name: "amplitude",
+        defaultValue: 0.3,
+        minValue: 0,
+        maxValue: 1,
+        automationRate: "a-rate"
+      }
+    ];
+  }
+
+  constructor() {
+    super();
+    this.seed = 123456789;
+  }
+
+  nextRandom() {
+    // Xorshift32 pseudo-random generator
+    let x = this.seed;
+
+    x ^= x << 13;
+    x ^= x >>> 17;
+    x ^= x << 5;
+
+    this.seed = x >>> 0;
+
+    return (this.seed / 4294967296) * 2 - 1;
+  }
+
+  process(inputs, outputs, parameters) {
+    const output = outputs[0];
+    const amplitudes = parameters.amplitude;
+
+    for (const channel of output) {
+      for (let i = 0; i < channel.length; i++) {
+        const amplitude =
+          amplitudes.length > 1
+            ? amplitudes[i]
+            : amplitudes[0];
+
+        channel[i] = this.nextRandom() * amplitude;
+      }
+    }
+
+    return true;
+  }
+}
+
+registerProcessor("raven-noise", RavenNoise);
+
+</script>
