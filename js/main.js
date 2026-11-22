@@ -1,24 +1,13 @@
-const OSCILLATOR_URL =
-  "./worklets/oscillator.js";
+const WORKLETS = [
+  "./worklets/oscillator.js",
+  "./worklets/noise.js",
+  "./worklets/resonator.js",
+  "./worklets/articulation.js",
+  "./worklets/transient.js",
+  "./worklets/modulator.js",
+  "./worklets/vocal-resonance.js"
+];
 
-const NOISE_URL =
-  "./worklets/noise.js";
-
-const RESONATOR_URL =
-  "./worklets/resonator.js";
-
-const ARTICULATION_URL =
-  "./worklets/articulation.js";
-
-const TRANSIENT_URL =
-  "./worklets/transient.js";
-
-const MODULATION_URL =
-  "./worklets/modulator.js";
-
-const VOCAL_RESONANCE_URL =
-  "./worklets/resonator.js";
-  
 let audioContext;
 
 let oscillator;
@@ -57,15 +46,11 @@ async function startSynth() {
     if (!audioContext) {
       audioContext = new AudioContext();
 
-      await Promise.all([
-        audioContext.audioWorklet.addModule(OSCILLATOR_URL),
-        audioContext.audioWorklet.addModule(NOISE_URL),
-        audioContext.audioWorklet.addModule(RESONATOR_URL),
-        audioContext.audioWorklet.addModule(ARTICULATION_URL),
-        audioContext.audioWorklet.addModule(TRANSIENT_URL),
-        audioContext.audioWorklet.addModule(MODULATION_URL),
-        audioContext.audioWorklet.addModule(VOCAL_RESONANCE_URL)
-      ]);
+    await Promise.all(
+      WORKLETS.map(url =>
+        audioContext.audioWorklet.addModule(url)
+      )
+    );
 
       oscillator = new AudioWorkletNode(
         audioContext, "raven-oscillator"
