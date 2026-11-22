@@ -269,6 +269,12 @@ function updateSound() {
   transient.parameters.get("character")
     .setValueAtTime(Number($("transientCharacter").value) / 100, now);
 
+  transient.parameters.get("pitch")
+  .setValueAtTime(Number($("transientPitch").value), now);
+
+  transient.parameters.get("decay")
+  .setValueAtTime(Number($("transientDecay").value), now);
+  
   transientGain.gain.setValueAtTime(Number($("transientOutput").value) / 100, now);
 
   modulator.parameters.get("rate").setValueAtTime(Number($("modRate").value), now);
@@ -447,6 +453,8 @@ const controls = [
   ["transientStrength", "transientStrengthValue"],
   ["transientDuration", "transientDurationValue"],
   ["transientCharacter", "transientCharacterValue"],
+  ["transientPitch", "transientPitchValue"],
+  ["transientDecay", "transientDecayValue"],
   ["modRate", "modRateValue"],
   ["modDepth", "modDepthValue"],
   ["vf1", "vf1Value"],
