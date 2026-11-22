@@ -1,4 +1,3 @@
-
 class RavenTransient extends AudioWorkletProcessor {
   static get parameterDescriptors() {
     return [
@@ -20,6 +19,20 @@ class RavenTransient extends AudioWorkletProcessor {
         defaultValue: 0.5,
         minValue: 0,
         maxValue: 1,
+        automationRate: "k-rate"
+      },
+      {
+        name: "pitch",
+        defaultValue: 3000,
+        minValue: 200,
+        maxValue: 10000,
+        automationRate: "k-rate"
+      },
+      {
+        name: "decay",
+        defaultValue: 2.5,
+        minValue: 0.5,
+        maxValue: 8,
         automationRate: "k-rate"
       }
     ];
@@ -48,8 +61,8 @@ class RavenTransient extends AudioWorkletProcessor {
     x ^= x << 13;
     x ^= x >>> 17;
     x ^= x << 5;
-    this.seed = x >>> 0;
 
+    this.seed = x >>> 0;
     return this.seed / 4294967296;
   }
 
@@ -59,6 +72,8 @@ class RavenTransient extends AudioWorkletProcessor {
     const defaultDuration = parameters.duration[0];
     const defaultStrength = parameters.strength[0];
     const defaultCharacter = parameters.character[0];
+    const pitch = parameters.pitch[0];
+    const decay = parameters.decay[0];
 
     for (const channel of output) {
       channel.fill(0);
@@ -68,12 +83,13 @@ class RavenTransient extends AudioWorkletProcessor {
       const event = this.events[i];
 
       const duration = event.duration || defaultDuration;
+
       const length = Math.max(
         1,
         Math.floor(duration * sampleRate / 1000)
       );
 
-      const strength = event.strength * defaultStrength *10;
+      const strength = event.strength * defaultStrength * 10;
       const character = event.character ?? defaultCharacter;
 
       for (
@@ -83,15 +99,22 @@ class RavenTransient extends AudioWorkletProcessor {
       ) {
         const progress = event.position / length;
 
-        const envelope = Math.pow(1 - progress, 2);
+        // Decay controls how sharply the transient disappears.
+        const envelope = Math.pow(
+          Math.max(0, 1 - progress),
+          decay
+        );
 
+        // Broadband component.
         const noise = this.random() * 2 - 1;
 
+        // Tonal component.
         const tonal = Math.sin(
-          2 * Math.PI * (1200 + character * 6000) *
+          2 * Math.PI * pitch *
           event.position / sampleRate
         );
 
+        // Blend noisy and tonal components.
         const signal =
           (noise * character + tonal * (1 - character)) *
           envelope * strength;
