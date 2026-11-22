@@ -5,7 +5,8 @@ const WORKLETS = [
   "./worklets/articulation.js",
   "./worklets/transient.js",
   "./worklets/modulator.js",
-  "./worklets/vocal-resonance.js"
+  "./worklets/vocal-resonance.js",
+  "./worklets/turbulence.js"
 ];
 
 let audioContext;
@@ -16,24 +17,20 @@ let resonator;
 let articulation;
 let transient;
 let modulator;
-
 let oscillatorGain;
 let noiseGain;
 let transientGain;
-
 let vocalResonance;
 let vocalDryGain;
 let vocalWetGain;
-
 let vocalLFOs = [];
 let vocalLFOGains = [];
-
 let gestureLFO;
 let gestureGains = [];
-
 let voiceSource;
 let voiceGain;
-  
+let turbulence;
+
 let loading = false;
 
 const $ = id => document.getElementById(id);
@@ -86,6 +83,8 @@ async function startSynth() {
       vocalLFOs = [];
       vocalLFOGains = [];
 
+      turbulence = new AudioWorkletNode(audioContext, "raven-turbulence");
+      
       for (let i = 1; i <= 4; i++) {
         const lfo = audioContext.createOscillator();
         const lfoGain = audioContext.createGain();
@@ -144,6 +143,7 @@ async function startSynth() {
 
       oscillatorGain.connect(resonator);
       noiseGain.connect(resonator);
+      turbulence.connect(resonator);
       transient.connect(transientGain);
       transientGain.connect(audioContext.destination);
       
