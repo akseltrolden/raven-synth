@@ -325,7 +325,7 @@ function updateSound() {
   voiceGain.gain.setValueAtTime($("voiceEnabled").checked ? Number($("voiceAmplitude").value) / 100 : 0, now);
   
   vocalResonance.parameters.get("level").setValueAtTime(Number($("vocalLevel").value) / 100, now);
-
+}
   // ======================================
   // RAVEN GESTURE SEQUENCER
   // ======================================
@@ -520,7 +520,6 @@ function updateSound() {
       now + 2.05
     );
   }
-}
 
   function playVocalGesture() {
     if (!vocalResonance || !audioContext) return;
