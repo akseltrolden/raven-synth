@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Raven Sound Laboratory</title>
+</head>
+<body>
+
+<h1>Raven Sound Laboratory</h1>
+
+
+<div class="synth">
+  <h2>Raven Synth</h2>
+
+  <h3>Oscillator</h3>
+
+  <label for="frequency">
+    Frequency: <span id="frequencyValue">440</span> Hz
+  </label>
+  <input id="frequency" type="range" min="100" max="2000" value="440">
+
+  <label for="amplitude">
+    Amplitude: <span id="amplitudeValue">30</span>%
+  </label>
+  <input id="amplitude" type="range" min="0" max="100" value="30">
+
+  <hr>
+
+  <h3>White Noise</h3>
+
+  <label for="noise">
+    Amplitude: <span id="noiseValue">0</span>%
+  </label>
+  <input id="noise" type="range" min="0" max="100" value="0">
+
+  <hr>
+
+  <h3>Resonator</h3>
+
+  <label for="source">Input source</label>
+  <select id="source">
+    <option value="both">Both</option>
+    <option value="oscillator">Oscillator</option>
+    <option value="noise">White Noise</option>
+  </select>
+
+  <label for="resFreq">
+    Center Frequency: <span id="resFreqValue">440</span> Hz
+  </label>
+  <input id="resFreq" type="range" min="100" max="8000" value="440">
+
+  <label for="q">
+    Resonance (Q): <span id="qValue">2.5</span>
+  </label>
+  <input id="q" type="range" min="0.5" max="20" value="2.5" step="0.1">
+
+  <label for="resAmp">
+    Output Level: <span id="resAmpValue">100</span>%
+  </label>
+  <input id="resAmp" type="range" min="0" max="100" value="100">
+
+  <hr>
+
+  <h3>Articulation</h3>
+
+  <label for="gate">
+    <input type="checkbox" id="gate" checked>
+    Gate open
+  </label>
+
+  <label for="attack">
+    Attack: <span id="attackValue">10</span> ms
+  </label>
+  <input id="attack" type="range" min="1" max="1000" value="10">
+
+  <label for="sustain">
+    Sustain: <span id="sustainValue">100</span>%
+  </label>
+  <input id="sustain" type="range" min="0" max="100" value="100">
+
+  <label for="release">
+    Release: <span id="releaseValue">100</span> ms
+  </label>
+  <input id="release" type="range" min="1" max="2000" value="100">
+
+  <label for="pulseRate">
+    Pulse Rate: <span id="pulseRateValue">0</span> Hz
+  </label>
+  <input id="pulseRate" type="range" min="0" max="50" value="0">
+
+  <label for="duty">
+    Duty Cycle: <span id="dutyValue">50</span>%
+  </label>
+  <input id="duty" type="range" min="1" max="99" value="50">
+
+  <label for="artAmp">
+    Articulation Level: <span id="artAmpValue">100</span>%
+  </label>
+  <input id="artAmp" type="range" min="0" max="100" value="100">
+
+  <hr>
+<h3>Transient Generator</h3>
+<label for="transientOutput">
+  Output Level: <span id="transientOutputValue">10</span>%
+</label>
+<input id="transientOutput" type="range"
+       min="0" max="100" value="10">
+<label for="transientStrength">
+  Strength: <span id="transientStrengthValue">70</span>%
+</label>
+<input id="transientStrength" type="range"
+       min="0" max="100" value="70">
+
+<label for="transientDuration">
+  Duration: <span id="transientDurationValue">8</span> ms
+</label>
+<input id="transientDuration" type="range"
+       min="1" max="100" value="8">
+
+<label for="transientCharacter">
+  Character: <span id="transientCharacterValue">50</span>%
+</label>
+<input id="transientCharacter" type="range"
+       min="0" max="100" value="50">
+
+<button id="triggerTransient">Trigger Transient</button>
+
+  
+<hr>
+
+<h3>Modulation</h3>
+
+<label for="modTarget">Target</label>
+<select id="modTarget">
+  <option value="oscillator">Oscillator Frequency</option>
+  <option value="resonator">Resonator Frequency</option>
+</select>
+
+<label for="modWaveform">Waveform</label>
+<select id="modWaveform">
+  <option value="0">Sine</option>
+  <option value="1">Triangle</option>
+  <option value="2">Sawtooth</option>
+  <option value="3">Random</option>
+</select>
+
+<label for="modRate">
+  Rate: <span id="modRateValue">2</span> Hz
+</label>
+<input id="modRate" type="range" min="0" max="40"
+       step="0.1" value="2">
+
+<label for="modDepth">
+  Depth: <span id="modDepthValue">100</span> Hz
+</label>
+<input id="modDepth" type="range" min="0" max="1000"
+       step="1" value="100">
+
+  
+<hr>
+
+<h3>Vocal Tract Resonance</h3>
+
+<label>
+  <input type="checkbox" id="vocalEnabled">
+  Enable Vocal Resonance
+</label>
+
+<h4>Resonator 1</h4>
+<label for="vf1">Frequency: <span id="vf1Value">500</span> Hz</label>
+<input id="vf1" type="range" min="20" max="10000" value="500">
+
+<label for="vq1">Q: <span id="vq1Value">3</span></label>
+<input id="vq1" type="range" min="0.5" max="30" step="0.1" value="3">
+
+<label for="vg1">Gain: <span id="vg1Value">100</span>%</label>
+<input id="vg1" type="range" min="0" max="200" value="100">
+
+<label for="vr1">Movement Rate: <span id="vr1Value">0.3</span> Hz</label>
+<input id="vr1" type="range" min="0.05" max="8" step="0.05" value="0.3">
+
+<label for="vd1">Movement Depth: <span id="vd1Value">100</span> Hz</label>
+<input id="vd1" type="range" min="0" max="2000" value="100">
+  
+<h4>Resonator 2</h4>
+<label for="vf2">Frequency: <span id="vf2Value">1500</span> Hz</label>
+<input id="vf2" type="range" min="20" max="10000" value="1500">
+
+<label for="vq2">Q: <span id="vq2Value">4</span></label>
+<input id="vq2" type="range" min="0.5" max="30" step="0.1" value="4">
+
+<label for="vg2">Gain: <span id="vg2Value">100</span>%</label>
+<input id="vg2" type="range" min="0" max="200" value="100">
+
+<label for="vr2">Movement Rate: <span id="vr2Value">0.47</span> Hz</label>
+<input id="vr2" type="range" min="0.05" max="8" step="0.05" value="0.47">
+
+<label for="vd2">Movement Depth: <span id="vd2Value">150</span> Hz</label>
+<input id="vd2" type="range" min="0" max="2000" value="150">
+  
+<h4>Resonator 3</h4>
+<label for="vf3">Frequency: <span id="vf3Value">2500</span> Hz</label>
+<input id="vf3" type="range" min="20" max="10000" value="2500">
+
+<label for="vq3">Q: <span id="vq3Value">5</span></label>
+<input id="vq3" type="range" min="0.5" max="30" step="0.1" value="5">
+
+<label for="vg3">Gain: <span id="vg3Value">70</span>%</label>
+<input id="vg3" type="range" min="0" max="200" value="70">
+
+<label for="vr3">Movement Rate: <span id="vr3Value">0.47</span> Hz</label>
+<input id="vr3" type="range" min="0.05" max="8" step="0.05" value="0.23">
+
+<label for="vd3">Movement Depth: <span id="vd3Value">150</span> Hz</label>
+<input id="vd3" type="range" min="0" max="2000" value="250">
+  
+<h4>Resonator 4</h4>
+<label for="vf4">Frequency: <span id="vf4Value">4000</span> Hz</label>
+<input id="vf4" type="range" min="20" max="10000" value="4000">
+
+<label for="vq4">Q: <span id="vq4Value">6</span></label>
+<input id="vq4" type="range" min="0.5" max="30" step="0.1" value="6">
+
+<label for="vg4">Gain: <span id="vg4Value">50</span>%</label>
+<input id="vg4" type="range" min="0" max="200" value="50">
+
+<label for="vr4">Movement Rate: <span id="vr4Value">0.47</span> Hz</label>
+<input id="vr4" type="range" min="0.05" max="8" step="0.05" value="0.61">
+
+<label for="vd4">Movement Depth: <span id="vd4Value">150</span> Hz</label>
+<input id="vd4" type="range" min="0" max="2000" value="350">
+  
+<label for="vocalLevel">
+  Bank Output: <span id="vocalLevelValue">25</span>%
+</label>
+<input id="vocalLevel" type="range" min="0" max="200" value="25">
+
+<hr>
+<h4>Coordinated Vocal Gesture</h4>
+
+<label for="gestureRate">
+  Gesture Rate: <span id="gestureRateValue">0.35</span> Hz
+</label>
+<input id="gestureRate" type="range"
+  min="0.05" max="4" step="0.05" value="0.35">
+
+<label for="gestureDepth">
+  Gesture Depth: <span id="gestureDepthValue">300</span> Hz
+</label>
+<input id="gestureDepth" type="range"
+  min="0" max="1500" value="300">
+
+<hr>
+<h4>Vocal Gesture Engine</h4>
+
+<button id="playGesture">
+  Perform Open Call
+</button>
+  <hr>
+<h3>Voiced Excitation</h3>
+
+<label>
+  <input type="checkbox" id="voiceEnabled" checked>
+  Enable Voiced Excitation
+</label>
+
+<label for="voiceWaveform">
+  Waveform
+</label>
+<select id="voiceWaveform">
+  <option value="sawtooth">Sawtooth</option>
+  <option value="square">Square</option>
+  <option value="triangle">Triangle</option>
+  <option value="sine">Sine</option>
+</select>
+
+<label for="voiceFrequency">
+  Frequency: <span id="voiceFrequencyValue">220</span> Hz
+</label>
+<input id="voiceFrequency" type="range"
+  min="40" max="2000" value="220">
+
+<label for="voiceAmplitude">
+  Amplitude: <span id="voiceAmplitudeValue">20</span>%
+</label>
+<input id="voiceAmplitude" type="range"
+  min="0" max="100" value="20">
+  
+  <button id="play">Play</button>
+  <button id="stop">Stop</button>
+</div>
+<script></script>
+</body></html>
