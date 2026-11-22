@@ -210,16 +210,25 @@ function updateSound() {
   oscillator.parameters.get("amplitude")
     .setValueAtTime(1, now);
 
-  noise.parameters.get("amplitude")
-    .setValueAtTime(1, now);
-
   oscillatorGain.gain.setValueAtTime(
     amplitude * oscillatorEnabled, now
   );
 
+  noise.parameters.get("amplitude")
+    .setValueAtTime(1, now);
+ 
   noiseGain.gain.setValueAtTime(
     noiseLevel * noiseEnabled, now
   );
+  
+  turbulence.parameters.get("pressure")
+  .setValueAtTime(Number($("turbPressure").value) / 100, now);
+
+  turbulence.parameters.get("brightness")
+  .setValueAtTime(Number($("turbBrightness").value), now);
+
+  turbulence.parameters.get("instability")
+  .setValueAtTime(Number($("turbInstability").value) / 100, now);
 
   resonator.parameters.get("frequency")
     .setValueAtTime(resFrequency, now);
@@ -422,6 +431,9 @@ const controls = [
   ["frequency", "frequencyValue"],
   ["amplitude", "amplitudeValue"],
   ["noise", "noiseValue"],
+  ["turbPressure", "turbPressureValue"],
+  ["turbBrightness", "turbBrightnessValue"],
+  ["turbInstability", "turbInstabilityValue"],
   ["resFreq", "resFreqValue"],
   ["q", "qValue"],
   ["resAmp", "resAmpValue"],
