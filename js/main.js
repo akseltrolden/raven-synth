@@ -332,194 +332,214 @@ function updateSound() {
 
   let gestureTimers = [];
 
-  function performRavenGesture() {
-    if (
-      !audioContext ||
-      !voiceSource ||
-      !voiceGain ||
-      !turbulence ||
-      !transient
-    ) {
-      console.warn("Raven Synth is not ready for gestures.");
-      return;
+
+const ravenGesture = {
+  name: "First Raven Gesture",
+
+  duration: 2.05,
+
+  events: [
+    // 1. Initial sharp click
+    {
+      type: "transient",
+      at: 0,
+      duration: 3,
+      strength: 1,
+      character: 1
+    },
+
+    // 2. Turbulent airflow burst
+    {
+      type: "curve",
+      target: "pressure",
+      points: [
+        [0.08, 0],
+        [0.13, 0.48],
+        [0.23, 0.48],
+        [0.34, 0]
+      ]
+    },
+
+    // 3. Rising voiced call
+    {
+      type: "voice",
+      frequency: [
+        [0.35, 440],
+        [0.55, 950],
+        [0.75, 1450],
+        [0.9, 1100]
+      ],
+      amplitude: [
+        [0.35, 0],
+        [0.48, 1],
+        [0.85, 1],
+        [1.0, 0]
+      ]
+    },
+
+    // 4. Paired clicks
+    {
+      type: "transient",
+      at: 0.95,
+      duration: 4,
+      strength: 1,
+      character: 0.8
+    },
+    {
+      type: "transient",
+      at: 1.08,
+      duration: 4,
+      strength: 0.9,
+      character: 0.8
+    },
+
+    // 5. Wavering breathy finish
+    {
+      type: "voice",
+      frequency: [
+        [1.2, 750],
+        [1.4, 1100],
+        [1.55, 650],
+        [1.7, 950]
+      ],
+      amplitude: [
+        [1.2, 0],
+        [1.3, 0.65],
+        [1.65, 0.65],
+        [1.9, 0]
+      ]
+    },
+    {
+      type: "curve",
+      target: "pressure",
+      points: [
+        [1.2, 0],
+        [1.35, 0.2],
+        [1.8, 0]
+      ]
     }
+  ]
+};
 
-    // Cancel any previous gesture timers.
-    gestureTimers.forEach(clearTimeout);
-    gestureTimers = [];
 
-    const now = audioContext.currentTime;
+function performRavenGesture() {
+  if (
+    !audioContext ||
+    !voiceSource ||
+    !voiceGain ||
+    !turbulence ||
+    !transient
+  ) {
+    console.warn("Raven Synth is not ready for gestures.");
+    return;
+  }
 
-    const pressure = turbulence.parameters.get("pressure");
-    const voiceFrequency = voiceSource.frequency;
-    const voiceAmplitude = voiceGain.gain;
+  gestureTimers.forEach(clearTimeout);
+  gestureTimers = [];
 
-    // Preserve the user's existing settings.
-    const basePressure =
-      Number($("turbPressure").value) / 100;
+  const now = audioContext.currentTime;
 
-    const baseFrequency =
-      Number($("voiceFrequency").value);
+  const pressure = turbulence.parameters.get("pressure");
+  const voiceFrequency = voiceSource.frequency;
+  const voiceAmplitude = voiceGain.gain;
 
-    const baseAmplitude = voiceAmplitude.value;
+  const basePressure =
+    Number($("turbPressure").value) / 100;
 
-    const voicePeak = Math.max(
-      0.18,
-      Math.min(0.4, baseAmplitude || 0.25)
-    );
+  const baseFrequency =
+    Number($("voiceFrequency").value);
 
-    // Clear previous automation.
-    pressure.cancelScheduledValues(now);
-    voiceFrequency.cancelScheduledValues(now);
-    voiceAmplitude.cancelScheduledValues(now);
+  const baseAmplitude = voiceAmplitude.value;
 
-    pressure.setValueAtTime(0, now);
-    voiceAmplitude.setValueAtTime(0, now);
-    voiceFrequency.setValueAtTime(baseFrequency, now);
+  const voicePeak = Math.max(
+    0.18,
+    Math.min(0.4, baseAmplitude || 0.25)
+  );
 
-    // Helper: schedule a transient.
-    function click(delay, duration, strength, character) {
+  // Cancel existing automation.
+  pressure.cancelScheduledValues(now);
+  voiceFrequency.cancelScheduledValues(now);
+  voiceAmplitude.cancelScheduledValues(now);
+
+  pressure.setValueAtTime(0, now);
+  voiceFrequency.setValueAtTime(baseFrequency, now);
+  voiceAmplitude.setValueAtTime(0, now);
+
+  // Schedule a sequence of values on an AudioParam.
+  function scheduleCurve(param, points, scale = 1) {
+    points.forEach(([time, value], index) => {
+      const scheduledTime = now + time;
+      const scaledValue = value * scale;
+
+      if (index === 0) {
+        param.setValueAtTime(scaledValue, scheduledTime);
+      } else {
+        param.linearRampToValueAtTime(
+          scaledValue,
+          scheduledTime
+        );
+      }
+    });
+  }
+
+  // Interpret each event in the gesture score.
+  for (const event of ravenGesture.events) {
+
+    if (event.type === "transient") {
       const timer = setTimeout(() => {
         transient.port.postMessage({
           type: "trigger",
-          duration,
-          strength,
-          character
+          duration: event.duration,
+          strength: event.strength,
+          character: event.character
         });
-      }, delay);
+      }, event.at * 1000);
 
       gestureTimers.push(timer);
     }
 
-    // --------------------------------------
-    // EVENT 1: Initial sharp click
-    // --------------------------------------
+    else if (event.type === "curve") {
+      const target =
+        event.target === "pressure"
+          ? pressure
+          : null;
 
-    click(0, 3, 1, 1);
+      if (target) {
+        scheduleCurve(target, event.points);
+      }
+    }
 
-    // --------------------------------------
-    // EVENT 2: Turbulent airflow burst
-    // --------------------------------------
+    else if (event.type === "voice") {
+      scheduleCurve(
+        voiceFrequency,
+        event.frequency
+      );
 
-    pressure.setValueAtTime(0, now + 0.08);
-    pressure.linearRampToValueAtTime(0.48, now + 0.13);
-    pressure.setValueAtTime(0.48, now + 0.23);
-    pressure.linearRampToValueAtTime(0, now + 0.34);
-
-    // --------------------------------------
-    // EVENT 3: Rising voiced call
-    // --------------------------------------
-
-    voiceAmplitude.setValueAtTime(0, now + 0.35);
-    voiceAmplitude.linearRampToValueAtTime(
-      voicePeak,
-      now + 0.48
-    );
-
-    voiceFrequency.setValueAtTime(
-      baseFrequency,
-      now + 0.35
-    );
-
-    voiceFrequency.linearRampToValueAtTime(
-      950,
-      now + 0.55
-    );
-
-    voiceFrequency.linearRampToValueAtTime(
-      1450,
-      now + 0.75
-    );
-
-    voiceFrequency.linearRampToValueAtTime(
-      1100,
-      now + 0.9
-    );
-
-    voiceAmplitude.setValueAtTime(
-      voicePeak,
-      now + 0.85
-    );
-
-    voiceAmplitude.linearRampToValueAtTime(
-      0,
-      now + 1.0
-    );
-
-    // --------------------------------------
-    // EVENT 4: Paired clicks
-    // --------------------------------------
-
-    click(950, 4, 1, 0.8);
-    click(1080, 4, 0.9, 0.8);
-
-    // --------------------------------------
-    // EVENT 5: Wavering breathy finish
-    // --------------------------------------
-
-    voiceAmplitude.setValueAtTime(0, now + 1.2);
-    voiceAmplitude.linearRampToValueAtTime(
-      voicePeak * 0.65,
-      now + 1.3
-    );
-
-    voiceFrequency.setValueAtTime(750, now + 1.2);
-    voiceFrequency.linearRampToValueAtTime(
-      1100,
-      now + 1.4
-    );
-
-    voiceFrequency.linearRampToValueAtTime(
-      650,
-      now + 1.55
-    );
-
-    voiceFrequency.linearRampToValueAtTime(
-      950,
-      now + 1.7
-    );
-
-    // Add a little breath to the finish.
-    pressure.setValueAtTime(0, now + 1.2);
-    pressure.linearRampToValueAtTime(
-      0.2,
-      now + 1.35
-    );
-
-    pressure.linearRampToValueAtTime(
-      0,
-      now + 1.8
-    );
-
-    voiceAmplitude.setValueAtTime(
-      voicePeak * 0.65,
-      now + 1.65
-    );
-
-    voiceAmplitude.linearRampToValueAtTime(
-      0,
-      now + 1.9
-    );
-
-    // --------------------------------------
-    // Restore original settings
-    // --------------------------------------
-
-    voiceAmplitude.setValueAtTime(
-      baseAmplitude,
-      now + 2.05
-    );
-
-    pressure.setValueAtTime(
-      basePressure,
-      now + 2.05
-    );
-
-    voiceFrequency.setValueAtTime(
-      baseFrequency,
-      now + 2.05
-    );
+      scheduleCurve(
+        voiceAmplitude,
+        event.amplitude,
+        voicePeak
+      );
+    }
   }
+
+  // Restore the user's original settings.
+  pressure.setValueAtTime(
+    basePressure,
+    now + ravenGesture.duration
+  );
+
+  voiceFrequency.setValueAtTime(
+    baseFrequency,
+    now + ravenGesture.duration
+  );
+
+  voiceAmplitude.setValueAtTime(
+    baseAmplitude,
+    now + ravenGesture.duration
+  );
+}
+
 
   function playVocalGesture() {
     if (!vocalResonance || !audioContext) return;
