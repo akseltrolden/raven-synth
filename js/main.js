@@ -327,306 +327,306 @@ function updateSound() {
   vocalResonance.parameters.get("level").setValueAtTime(Number($("vocalLevel").value) / 100, now);
 
   // ======================================
-// RAVEN GESTURE SEQUENCER
-// ======================================
+  // RAVEN GESTURE SEQUENCER
+  // ======================================
 
-let gestureTimers = [];
+  let gestureTimers = [];
 
-function performRavenGesture() {
-  if (
-    !audioContext ||
-    !voiceSource ||
-    !voiceGain ||
-    !turbulence ||
-    !transient
-  ) {
-    console.warn("Raven Synth is not ready for gestures.");
-    return;
-  }
+  function performRavenGesture() {
+    if (
+      !audioContext ||
+      !voiceSource ||
+      !voiceGain ||
+      !turbulence ||
+      !transient
+    ) {
+      console.warn("Raven Synth is not ready for gestures.");
+      return;
+    }
 
-  // Cancel any previous gesture timers.
-  gestureTimers.forEach(clearTimeout);
-  gestureTimers = [];
+    // Cancel any previous gesture timers.
+    gestureTimers.forEach(clearTimeout);
+    gestureTimers = [];
 
-  const now = audioContext.currentTime;
+    const now = audioContext.currentTime;
 
-  const pressure = turbulence.parameters.get("pressure");
-  const voiceFrequency = voiceSource.frequency;
-  const voiceAmplitude = voiceGain.gain;
+    const pressure = turbulence.parameters.get("pressure");
+    const voiceFrequency = voiceSource.frequency;
+    const voiceAmplitude = voiceGain.gain;
 
-  // Preserve the user's existing settings.
-  const basePressure =
-    Number($("turbPressure").value) / 100;
+    // Preserve the user's existing settings.
+    const basePressure =
+      Number($("turbPressure").value) / 100;
 
-  const baseFrequency =
-    Number($("voiceFrequency").value);
+    const baseFrequency =
+      Number($("voiceFrequency").value);
 
-  const baseAmplitude = voiceAmplitude.value;
+    const baseAmplitude = voiceAmplitude.value;
 
-  const voicePeak = Math.max(
-    0.18,
-    Math.min(0.4, baseAmplitude || 0.25)
-  );
-
-  // Clear previous automation.
-  pressure.cancelScheduledValues(now);
-  voiceFrequency.cancelScheduledValues(now);
-  voiceAmplitude.cancelScheduledValues(now);
-
-  pressure.setValueAtTime(0, now);
-  voiceAmplitude.setValueAtTime(0, now);
-  voiceFrequency.setValueAtTime(baseFrequency, now);
-
-  // Helper: schedule a transient.
-  function click(delay, duration, strength, character) {
-    const timer = setTimeout(() => {
-      transient.port.postMessage({
-        type: "trigger",
-        duration,
-        strength,
-        character
-      });
-    }, delay);
-
-    gestureTimers.push(timer);
-  }
-
-  // --------------------------------------
-  // EVENT 1: Initial sharp click
-  // --------------------------------------
-
-  click(0, 3, 1, 1);
-
-  // --------------------------------------
-  // EVENT 2: Turbulent airflow burst
-  // --------------------------------------
-
-  pressure.setValueAtTime(0, now + 0.08);
-  pressure.linearRampToValueAtTime(0.48, now + 0.13);
-  pressure.setValueAtTime(0.48, now + 0.23);
-  pressure.linearRampToValueAtTime(0, now + 0.34);
-
-  // --------------------------------------
-  // EVENT 3: Rising voiced call
-  // --------------------------------------
-
-  voiceAmplitude.setValueAtTime(0, now + 0.35);
-  voiceAmplitude.linearRampToValueAtTime(
-    voicePeak,
-    now + 0.48
-  );
-
-  voiceFrequency.setValueAtTime(
-    baseFrequency,
-    now + 0.35
-  );
-
-  voiceFrequency.linearRampToValueAtTime(
-    950,
-    now + 0.55
-  );
-
-  voiceFrequency.linearRampToValueAtTime(
-    1450,
-    now + 0.75
-  );
-
-  voiceFrequency.linearRampToValueAtTime(
-    1100,
-    now + 0.9
-  );
-
-  voiceAmplitude.setValueAtTime(
-    voicePeak,
-    now + 0.85
-  );
-
-  voiceAmplitude.linearRampToValueAtTime(
-    0,
-    now + 1.0
-  );
-
-  // --------------------------------------
-  // EVENT 4: Paired clicks
-  // --------------------------------------
-
-  click(950, 4, 1, 0.8);
-  click(1080, 4, 0.9, 0.8);
-
-  // --------------------------------------
-  // EVENT 5: Wavering breathy finish
-  // --------------------------------------
-
-  voiceAmplitude.setValueAtTime(0, now + 1.2);
-  voiceAmplitude.linearRampToValueAtTime(
-    voicePeak * 0.65,
-    now + 1.3
-  );
-
-  voiceFrequency.setValueAtTime(750, now + 1.2);
-  voiceFrequency.linearRampToValueAtTime(
-    1100,
-    now + 1.4
-  );
-
-  voiceFrequency.linearRampToValueAtTime(
-    650,
-    now + 1.55
-  );
-
-  voiceFrequency.linearRampToValueAtTime(
-    950,
-    now + 1.7
-  );
-
-  // Add a little breath to the finish.
-  pressure.setValueAtTime(0, now + 1.2);
-  pressure.linearRampToValueAtTime(
-    0.2,
-    now + 1.35
-  );
-
-  pressure.linearRampToValueAtTime(
-    0,
-    now + 1.8
-  );
-
-  voiceAmplitude.setValueAtTime(
-    voicePeak * 0.65,
-    now + 1.65
-  );
-
-  voiceAmplitude.linearRampToValueAtTime(
-    0,
-    now + 1.9
-  );
-
-  // --------------------------------------
-  // Restore original settings
-  // --------------------------------------
-
-  voiceAmplitude.setValueAtTime(
-    baseAmplitude,
-    now + 2.05
-  );
-
-  pressure.setValueAtTime(
-    basePressure,
-    now + 2.05
-  );
-
-  voiceFrequency.setValueAtTime(
-    baseFrequency,
-    now + 2.05
-  );
-}
-}
-
-function playVocalGesture() {
-  if (!vocalResonance || !audioContext) return;
-
-  const now = audioContext.currentTime + 0.05;
-
-  // Silence the continuous modulators during the gesture.
-  for (const gain of vocalLFOGains) {
-    gain.gain.setValueAtTime(0, now);
-  }
-
-  for (const gain of gestureGains) {
-    gain.gain.setValueAtTime(0, now);
-  }
-
-  // Read the current vocal tract settings.
-  const baseFreq = [];
-  const baseGain = [];
-
-  for (let i = 1; i <= 4; i++) {
-    baseFreq.push(Number($("vf" + i).value));
-    baseGain.push(Number($("vg" + i).value) / 100);
-  }
-
-  // Time, frequency offsets, and resonance strengths.
-const sequence = [
-  {
-    time: 0,
-    freq: [0, 0, 0, 0],
-    gain: [0.7, 0.6, 0.4, 0.3]
-  },
-  {
-    time: 0.3,
-    freq: [-80, 100, 180, 220],
-    gain: [1.2, 1.1, 0.8, 0.6]
-  },
-  {
-    time: 1.0,
-    freq: [-130, 180, 350, 420],
-    gain: [1.3, 1.2, 1.0, 0.75]
-  },
-  {
-    time: 1.8,
-    freq: [-40, 80, 250, 100],
-    gain: [1.0, 1.15, 1.2, 0.9]
-  },
-  {
-    time: 2.5,
-    freq: [30, -50, 80, -120],
-    gain: [0.75, 0.7, 0.6, 0.35]
-  },
-  {
-    time: 3.0,
-    freq: [0, 0, 0, 0],
-    gain: [0.5, 0.4, 0.3, 0.2]
-  }
-];
-  // Schedule all four resonators.
-  for (let i = 0; i < 4; i++) {
-    const frequency = vocalResonance.parameters.get(
-      "frequency" + (i + 1)
+    const voicePeak = Math.max(
+      0.18,
+      Math.min(0.4, baseAmplitude || 0.25)
     );
 
-    const gain = vocalResonance.parameters.get(
-      "gain" + (i + 1)
+    // Clear previous automation.
+    pressure.cancelScheduledValues(now);
+    voiceFrequency.cancelScheduledValues(now);
+    voiceAmplitude.cancelScheduledValues(now);
+
+    pressure.setValueAtTime(0, now);
+    voiceAmplitude.setValueAtTime(0, now);
+    voiceFrequency.setValueAtTime(baseFrequency, now);
+
+    // Helper: schedule a transient.
+    function click(delay, duration, strength, character) {
+      const timer = setTimeout(() => {
+        transient.port.postMessage({
+          type: "trigger",
+          duration,
+          strength,
+          character
+        });
+      }, delay);
+
+      gestureTimers.push(timer);
+    }
+
+    // --------------------------------------
+    // EVENT 1: Initial sharp click
+    // --------------------------------------
+
+    click(0, 3, 1, 1);
+
+    // --------------------------------------
+    // EVENT 2: Turbulent airflow burst
+    // --------------------------------------
+
+    pressure.setValueAtTime(0, now + 0.08);
+    pressure.linearRampToValueAtTime(0.48, now + 0.13);
+    pressure.setValueAtTime(0.48, now + 0.23);
+    pressure.linearRampToValueAtTime(0, now + 0.34);
+
+    // --------------------------------------
+    // EVENT 3: Rising voiced call
+    // --------------------------------------
+
+    voiceAmplitude.setValueAtTime(0, now + 0.35);
+    voiceAmplitude.linearRampToValueAtTime(
+      voicePeak,
+      now + 0.48
     );
 
-    frequency.cancelScheduledValues(now);
-    gain.cancelScheduledValues(now);
+    voiceFrequency.setValueAtTime(
+      baseFrequency,
+      now + 0.35
+    );
 
-    frequency.setValueAtTime(baseFreq[i], now);
-    gain.setValueAtTime(baseGain[i], now);
+    voiceFrequency.linearRampToValueAtTime(
+      950,
+      now + 0.55
+    );
 
-    for (const step of sequence) {
-      const time = now + step.time;
+    voiceFrequency.linearRampToValueAtTime(
+      1450,
+      now + 0.75
+    );
 
-      const targetFrequency = Math.max(
-        20,
-        Math.min(10000, baseFreq[i] + step.freq[i])
+    voiceFrequency.linearRampToValueAtTime(
+      1100,
+      now + 0.9
+    );
+
+    voiceAmplitude.setValueAtTime(
+      voicePeak,
+      now + 0.85
+    );
+
+    voiceAmplitude.linearRampToValueAtTime(
+      0,
+      now + 1.0
+    );
+
+    // --------------------------------------
+    // EVENT 4: Paired clicks
+    // --------------------------------------
+
+    click(950, 4, 1, 0.8);
+    click(1080, 4, 0.9, 0.8);
+
+    // --------------------------------------
+    // EVENT 5: Wavering breathy finish
+    // --------------------------------------
+
+    voiceAmplitude.setValueAtTime(0, now + 1.2);
+    voiceAmplitude.linearRampToValueAtTime(
+      voicePeak * 0.65,
+      now + 1.3
+    );
+
+    voiceFrequency.setValueAtTime(750, now + 1.2);
+    voiceFrequency.linearRampToValueAtTime(
+      1100,
+      now + 1.4
+    );
+
+    voiceFrequency.linearRampToValueAtTime(
+      650,
+      now + 1.55
+    );
+
+    voiceFrequency.linearRampToValueAtTime(
+      950,
+      now + 1.7
+    );
+
+    // Add a little breath to the finish.
+    pressure.setValueAtTime(0, now + 1.2);
+    pressure.linearRampToValueAtTime(
+      0.2,
+      now + 1.35
+    );
+
+    pressure.linearRampToValueAtTime(
+      0,
+      now + 1.8
+    );
+
+    voiceAmplitude.setValueAtTime(
+      voicePeak * 0.65,
+      now + 1.65
+    );
+
+    voiceAmplitude.linearRampToValueAtTime(
+      0,
+      now + 1.9
+    );
+
+    // --------------------------------------
+    // Restore original settings
+    // --------------------------------------
+
+    voiceAmplitude.setValueAtTime(
+      baseAmplitude,
+      now + 2.05
+    );
+
+    pressure.setValueAtTime(
+      basePressure,
+      now + 2.05
+    );
+
+    voiceFrequency.setValueAtTime(
+      baseFrequency,
+      now + 2.05
+    );
+  }
+}
+
+  function playVocalGesture() {
+    if (!vocalResonance || !audioContext) return;
+
+    const now = audioContext.currentTime + 0.05;
+
+    // Silence the continuous modulators during the gesture.
+    for (const gain of vocalLFOGains) {
+      gain.gain.setValueAtTime(0, now);
+    }
+
+    for (const gain of gestureGains) {
+      gain.gain.setValueAtTime(0, now);
+    }
+
+    // Read the current vocal tract settings.
+    const baseFreq = [];
+    const baseGain = [];
+
+    for (let i = 1; i <= 4; i++) {
+      baseFreq.push(Number($("vf" + i).value));
+      baseGain.push(Number($("vg" + i).value) / 100);
+    }
+
+    // Time, frequency offsets, and resonance strengths.
+  const sequence = [
+    {
+      time: 0,
+      freq: [0, 0, 0, 0],
+      gain: [0.7, 0.6, 0.4, 0.3]
+    },
+    {
+      time: 0.3,
+      freq: [-80, 100, 180, 220],
+      gain: [1.2, 1.1, 0.8, 0.6]
+    },
+    {
+      time: 1.0,
+      freq: [-130, 180, 350, 420],
+      gain: [1.3, 1.2, 1.0, 0.75]
+    },
+    {
+      time: 1.8,
+      freq: [-40, 80, 250, 100],
+      gain: [1.0, 1.15, 1.2, 0.9]
+    },
+    {
+      time: 2.5,
+      freq: [30, -50, 80, -120],
+      gain: [0.75, 0.7, 0.6, 0.35]
+    },
+    {
+      time: 3.0,
+      freq: [0, 0, 0, 0],
+      gain: [0.5, 0.4, 0.3, 0.2]
+    }
+  ];
+    // Schedule all four resonators.
+    for (let i = 0; i < 4; i++) {
+      const frequency = vocalResonance.parameters.get(
+        "frequency" + (i + 1)
       );
 
-      const targetGain = baseGain[i] * step.gain[i];
+      const gain = vocalResonance.parameters.get(
+        "gain" + (i + 1)
+      );
 
+      frequency.cancelScheduledValues(now);
+      gain.cancelScheduledValues(now);
+
+      frequency.setValueAtTime(baseFreq[i], now);
+      gain.setValueAtTime(baseGain[i], now);
+
+      for (const step of sequence) {
+        const time = now + step.time;
+
+        const targetFrequency = Math.max(
+          20,
+          Math.min(10000, baseFreq[i] + step.freq[i])
+        );
+
+        const targetGain = baseGain[i] * step.gain[i];
+
+        frequency.linearRampToValueAtTime(
+          targetFrequency,
+          time
+        );
+
+        gain.linearRampToValueAtTime(
+          targetGain,
+          time
+        );
+      }
+
+      // Restore the original vocal tract shape.
       frequency.linearRampToValueAtTime(
-        targetFrequency,
-        time
+        baseFreq[i],
+        now + 3.3
       );
 
       gain.linearRampToValueAtTime(
-        targetGain,
-        time
+        baseGain[i],
+        now + 3.3
       );
     }
-
-    // Restore the original vocal tract shape.
-    frequency.linearRampToValueAtTime(
-      baseFreq[i],
-      now + 3.3
-    );
-
-    gain.linearRampToValueAtTime(
-      baseGain[i],
-      now + 3.3
-    );
   }
-}
 // All slider displays
 const controls = [
   ["frequency", "frequencyValue"],
