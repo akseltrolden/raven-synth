@@ -1,1 +1,533 @@
+const OSCILLATOR_URL =
+  "./worklets/oscillator.js";
 
+const NOISE_URL =
+  "./worklets/noise.js";
+
+const RESONATOR_URL =
+  "./worklets/resonator.js";
+
+const ARTICULATION_URL =
+  "./worklets/articulation.js";
+
+const TRANSIENT_URL =
+  "./worklets/transient.js";
+
+const MODULATION_URL =
+  "./worklets/modulator.js";
+
+const VOCAL_RESONANCE_URL =
+  "./worklets/resonator.js";
+  
+let audioContext;
+
+let oscillator;
+let noise;
+let resonator;
+let articulation;
+let transient;
+let modulator;
+
+let oscillatorGain;
+let noiseGain;
+let transientGain;
+
+let vocalResonance;
+let vocalDryGain;
+let vocalWetGain;
+
+let vocalLFOs = [];
+let vocalLFOGains = [];
+
+let gestureLFO;
+let gestureGains = [];
+
+let voiceSource;
+let voiceGain;
+  
+let loading = false;
+
+const $ = id => document.getElementById(id);
+
+async function startSynth() {
+  if (loading) return;
+  loading = true;
+
+  try {
+    if (!audioContext) {
+      audioContext = new AudioContext();
+
+      await Promise.all([
+        audioContext.audioWorklet.addModule(OSCILLATOR_URL),
+        audioContext.audioWorklet.addModule(NOISE_URL),
+        audioContext.audioWorklet.addModule(RESONATOR_URL),
+        audioContext.audioWorklet.addModule(ARTICULATION_URL),
+        audioContext.audioWorklet.addModule(TRANSIENT_URL),
+        audioContext.audioWorklet.addModule(MODULATION_URL),
+        audioContext.audioWorklet.addModule(VOCAL_RESONANCE_URL)
+      ]);
+
+      oscillator = new AudioWorkletNode(
+        audioContext, "raven-oscillator"
+      );
+
+      noise = new AudioWorkletNode(
+        audioContext, "raven-noise"
+      );
+
+      resonator = new AudioWorkletNode(
+        audioContext, "raven-resonator"
+      );
+
+      articulation = new AudioWorkletNode(
+        audioContext, "raven-articulation"
+      );
+
+      transient = new AudioWorkletNode(
+        audioContext, "raven-transient"
+      );
+
+      modulator = new AudioWorkletNode(
+        audioContext, "raven-modulator"
+      );
+      
+      routeModulator();
+      
+      vocalResonance = new AudioWorkletNode(audioContext, "raven-vocal-resonance");
+
+      vocalDryGain = audioContext.createGain();
+      vocalWetGain = audioContext.createGain();
+
+      vocalLFOs = [];
+      vocalLFOGains = [];
+
+      for (let i = 1; i <= 4; i++) {
+        const lfo = audioContext.createOscillator();
+        const lfoGain = audioContext.createGain();
+
+        lfo.type = "sine";
+
+        lfo.connect(lfoGain);
+        lfoGain.connect(vocalResonance.parameters.get("frequency" + i));
+
+        lfo.start();
+
+        vocalLFOs.push(lfo);
+        vocalLFOGains.push(lfoGain);
+      }
+
+      gestureLFO = audioContext.createOscillator();
+      gestureLFO.type = "sine";
+
+      gestureGains = [];
+
+      const gestureShape = [1, 0.65, -0.5, -0.8];
+
+      for (let i = 1; i <= 4; i++) {
+        const gain = audioContext.createGain();
+
+        gestureLFO.connect(gain);
+
+        gain.connect(vocalResonance.parameters.get("frequency" + i));
+
+        gestureGains.push(gain);
+      }
+
+      gestureLFO.start();
+      
+      modulator.connect(oscillator.parameters.get("frequency"));
+
+      voiceSource = audioContext.createOscillator();
+      voiceGain = audioContext.createGain();
+
+      voiceSource.type = $("voiceWaveform").value;
+
+      voiceSource.connect(voiceGain);
+
+      // Feed the voiced source into the existing resonator.
+      voiceGain.connect(resonator);
+
+      voiceSource.start();
+      
+      oscillatorGain = audioContext.createGain();
+      noiseGain = audioContext.createGain();
+      transientGain = audioContext.createGain();
+      transientGain.gain.value = 0.1;
+
+      oscillator.connect(oscillatorGain);
+      noise.connect(noiseGain);
+
+      oscillatorGain.connect(resonator);
+      noiseGain.connect(resonator);
+      transient.connect(transientGain);
+      transientGain.connect(audioContext.destination);
+      
+      resonator.connect(vocalDryGain);
+      resonator.connect(vocalResonance);
+
+      vocalResonance.connect(vocalWetGain);
+
+      vocalDryGain.connect(articulation);
+      vocalWetGain.connect(articulation);
+      articulation.connect(audioContext.destination);
+    }
+
+    await audioContext.resume();
+    updateSound();
+
+    console.log("Raven Synth running");
+  } catch (error) {
+    console.error("Synth error:", error);
+  } finally {
+    loading = false;
+  }
+}
+
+function routeModulator() {
+  if (!modulator || !oscillator || !resonator) return;
+
+  modulator.disconnect();
+
+  const target = $("modTarget").value;
+
+  if (target === "oscillator") {
+    modulator.connect(
+      oscillator.parameters.get("frequency")
+    );
+  } else {
+    modulator.connect(
+      resonator.parameters.get("frequency")
+    );
+  }
+}
+
+function updateSound() {
+  if (!audioContext || !articulation) return;
+
+  const now = audioContext.currentTime;
+
+  const frequency = Number($("frequency").value);
+  const amplitude = Number($("amplitude").value) / 100;
+  const noiseLevel = Number($("noise").value) / 100;
+
+  const resFrequency = Number($("resFreq").value);
+  const q = Number($("q").value);
+  const resAmplitude = Number($("resAmp").value) / 100;
+
+  const source = $("source").value;
+
+  const oscillatorEnabled = source === "noise" ? 0 : 1;
+  const noiseEnabled = source === "oscillator" ? 0 : 1;
+
+  oscillator.parameters.get("frequency")
+    .setValueAtTime(frequency, now);
+
+  oscillator.parameters.get("amplitude")
+    .setValueAtTime(1, now);
+
+  noise.parameters.get("amplitude")
+    .setValueAtTime(1, now);
+
+  oscillatorGain.gain.setValueAtTime(
+    amplitude * oscillatorEnabled, now
+  );
+
+  noiseGain.gain.setValueAtTime(
+    noiseLevel * noiseEnabled, now
+  );
+
+  resonator.parameters.get("frequency")
+    .setValueAtTime(resFrequency, now);
+
+  resonator.parameters.get("q")
+    .setValueAtTime(q, now);
+
+  resonator.parameters.get("amplitude")
+    .setValueAtTime(resAmplitude, now);
+
+  articulation.parameters.get("gate")
+    .setValueAtTime($("gate").checked ? 1 : 0, now);
+
+  articulation.parameters.get("attack")
+    .setValueAtTime(Number($("attack").value), now);
+
+  articulation.parameters.get("sustain")
+    .setValueAtTime(Number($("sustain").value) / 100, now);
+
+  articulation.parameters.get("release")
+    .setValueAtTime(Number($("release").value), now);
+
+  articulation.parameters.get("pulseRate")
+    .setValueAtTime(Number($("pulseRate").value), now);
+
+  articulation.parameters.get("dutyCycle")
+    .setValueAtTime(Number($("duty").value) / 100, now);
+
+  articulation.parameters.get("amplitude")
+    .setValueAtTime(Number($("artAmp").value) / 100, now);
+
+  transient.parameters.get("strength")
+    .setValueAtTime(Number($("transientStrength").value) / 100, now);
+
+  transient.parameters.get("duration")
+    .setValueAtTime(Number($("transientDuration").value), now);
+
+  transient.parameters.get("character")
+    .setValueAtTime(Number($("transientCharacter").value) / 100, now);
+
+  transientGain.gain.setValueAtTime(Number($("transientOutput").value) / 100, now);
+
+  modulator.parameters.get("rate").setValueAtTime(Number($("modRate").value), now);
+
+  modulator.parameters.get("depth").setValueAtTime(Number($("modDepth").value), now);
+
+  modulator.parameters.get("waveform").setValueAtTime(Number($("modWaveform").value), now);
+
+  // Select original or vocal resonance path
+  const vocalOn = $("vocalEnabled").checked;
+
+  vocalDryGain.gain.setValueAtTime(vocalOn ? 0 : 1, now);
+
+  vocalWetGain.gain.setValueAtTime(vocalOn ? 1 : 0, now);
+
+  // Four vocal resonators
+  for (let i = 1; i <= 4; i++) {
+    vocalResonance.parameters.get("frequency" + i).setValueAtTime(Number($("vf" + i).value), now);
+
+    vocalResonance.parameters.get("q" + i).setValueAtTime(Number($("vq" + i).value), now);
+
+    vocalResonance.parameters.get("gain" + i).setValueAtTime(Number($("vg" + i).value) / 100, now);
+  }
+
+  for (let i = 1; i <= 4; i++) {
+    const rate = Number($("vr" + i).value);
+    const depth = Number($("vd" + i).value);
+
+    vocalLFOs[i - 1].frequency.setValueAtTime(rate, now);
+
+    vocalLFOGains[i - 1].gain.setValueAtTime($("vocalEnabled").checked ? depth : 0, now);
+  }
+  
+  gestureLFO.frequency.setValueAtTime(Number($("gestureRate").value), now);
+
+  const gestureDepth = Number($("gestureDepth").value);
+
+  const gestureShape = [1, 0.65, -0.5, -0.8];
+
+  for (let i = 0; i < 4; i++) {
+    gestureGains[i].gain.setValueAtTime($("vocalEnabled").checked ? gestureDepth * gestureShape[i] : 0, now);
+  }
+
+  voiceSource.frequency.setValueAtTime(Number($("voiceFrequency").value), now);
+
+  voiceSource.type = $("voiceWaveform").value;
+
+  voiceGain.gain.setValueAtTime($("voiceEnabled").checked ? Number($("voiceAmplitude").value) / 100 : 0, now);
+  
+  vocalResonance.parameters.get("level").setValueAtTime(Number($("vocalLevel").value) / 100, now);
+}
+
+function playVocalGesture() {
+  if (!vocalResonance || !audioContext) return;
+
+  const now = audioContext.currentTime + 0.05;
+
+  // Silence the continuous modulators during the gesture.
+  for (const gain of vocalLFOGains) {
+    gain.gain.setValueAtTime(0, now);
+  }
+
+  for (const gain of gestureGains) {
+    gain.gain.setValueAtTime(0, now);
+  }
+
+  // Read the current vocal tract settings.
+  const baseFreq = [];
+  const baseGain = [];
+
+  for (let i = 1; i <= 4; i++) {
+    baseFreq.push(Number($("vf" + i).value));
+    baseGain.push(Number($("vg" + i).value) / 100);
+  }
+
+  // Time, frequency offsets, and resonance strengths.
+const sequence = [
+  {
+    time: 0,
+    freq: [0, 0, 0, 0],
+    gain: [0.7, 0.6, 0.4, 0.3]
+  },
+  {
+    time: 0.3,
+    freq: [-80, 100, 180, 220],
+    gain: [1.2, 1.1, 0.8, 0.6]
+  },
+  {
+    time: 1.0,
+    freq: [-130, 180, 350, 420],
+    gain: [1.3, 1.2, 1.0, 0.75]
+  },
+  {
+    time: 1.8,
+    freq: [-40, 80, 250, 100],
+    gain: [1.0, 1.15, 1.2, 0.9]
+  },
+  {
+    time: 2.5,
+    freq: [30, -50, 80, -120],
+    gain: [0.75, 0.7, 0.6, 0.35]
+  },
+  {
+    time: 3.0,
+    freq: [0, 0, 0, 0],
+    gain: [0.5, 0.4, 0.3, 0.2]
+  }
+];
+  // Schedule all four resonators.
+  for (let i = 0; i < 4; i++) {
+    const frequency = vocalResonance.parameters.get(
+      "frequency" + (i + 1)
+    );
+
+    const gain = vocalResonance.parameters.get(
+      "gain" + (i + 1)
+    );
+
+    frequency.cancelScheduledValues(now);
+    gain.cancelScheduledValues(now);
+
+    frequency.setValueAtTime(baseFreq[i], now);
+    gain.setValueAtTime(baseGain[i], now);
+
+    for (const step of sequence) {
+      const time = now + step.time;
+
+      const targetFrequency = Math.max(
+        20,
+        Math.min(10000, baseFreq[i] + step.freq[i])
+      );
+
+      const targetGain = baseGain[i] * step.gain[i];
+
+      frequency.linearRampToValueAtTime(
+        targetFrequency,
+        time
+      );
+
+      gain.linearRampToValueAtTime(
+        targetGain,
+        time
+      );
+    }
+
+    // Restore the original vocal tract shape.
+    frequency.linearRampToValueAtTime(
+      baseFreq[i],
+      now + 3.3
+    );
+
+    gain.linearRampToValueAtTime(
+      baseGain[i],
+      now + 3.3
+    );
+  }
+}
+// All slider displays
+const controls = [
+  ["frequency", "frequencyValue"],
+  ["amplitude", "amplitudeValue"],
+  ["noise", "noiseValue"],
+  ["resFreq", "resFreqValue"],
+  ["q", "qValue"],
+  ["resAmp", "resAmpValue"],
+  ["attack", "attackValue"],
+  ["sustain", "sustainValue"],
+  ["release", "releaseValue"],
+  ["pulseRate", "pulseRateValue"],
+  ["duty", "dutyValue"],
+  ["artAmp", "artAmpValue"],
+  ["transientOutput", "transientOutputValue"],
+  ["transientStrength", "transientStrengthValue"],
+  ["transientDuration", "transientDurationValue"],
+  ["transientCharacter", "transientCharacterValue"],
+  ["modRate", "modRateValue"],
+  ["modDepth", "modDepthValue"],
+  ["vf1", "vf1Value"],
+  ["vq1", "vq1Value"],
+  ["vg1", "vg1Value"],
+  ["vf2", "vf2Value"],
+  ["vq2", "vq2Value"],
+  ["vg2", "vg2Value"],
+  ["vf3", "vf3Value"],
+  ["vq3", "vq3Value"],
+  ["vg3", "vg3Value"],
+  ["vf4", "vf4Value"],
+  ["vq4", "vq4Value"],
+  ["vg4", "vg4Value"],
+  ["vocalLevel", "vocalLevelValue"],
+  ["vr1", "vr1Value"],
+  ["vd1", "vd1Value"],
+  ["vr2", "vr2Value"],
+  ["vd2", "vd2Value"],
+  ["vr3", "vr3Value"],
+  ["vd3", "vd3Value"],
+  ["vr4", "vr4Value"],
+  ["vd4", "vd4Value"],
+  ["gestureRate", "gestureRateValue"],
+  ["gestureDepth", "gestureDepthValue"],
+  ["voiceFrequency", "voiceFrequencyValue"],
+  ["voiceAmplitude", "voiceAmplitudeValue"]
+];
+
+controls.forEach(([control, display]) => {
+  $(control).addEventListener("input", () => {
+    $(display).textContent = $(control).value;
+    updateSound();
+  });
+});
+
+$("source").addEventListener("change", updateSound);
+$("gate").addEventListener("change", updateSound);
+
+$("play").addEventListener("click", startSynth);
+
+$("stop").addEventListener("click", () => {
+  if (audioContext) audioContext.suspend();
+});
+
+$("modTarget").addEventListener("change", routeModulator);
+$("modWaveform").addEventListener("change", updateSound);
+
+$("vocalEnabled").addEventListener("change", updateSound);
+
+$("playGesture").addEventListener("click", async () => {
+  if (!audioContext) {
+    await startSynth();
+  }
+
+  if (audioContext.state !== "running") {
+    await audioContext.resume();
+  }
+
+  $("vocalEnabled").checked = true;
+  updateSound();
+
+  playVocalGesture();
+});
+
+$("voiceEnabled").addEventListener("change", updateSound);
+$("voiceWaveform").addEventListener("change", updateSound);
+// Trigger one transient event
+$("triggerTransient").addEventListener("click", async () => {
+  if (!audioContext) {
+    await startSynth();
+  }
+
+  if (!transient || audioContext.state !== "running") return;
+
+  transient.port.postMessage({
+    type: "trigger",
+    strength: 1,
+    character: Number($("transientCharacter").value) / 100
+  });
+});
