@@ -147,7 +147,19 @@
 </label>
 <input id="transientCharacter" type="range"
        min="0" max="100" value="50">
+<label>
+  Pitch
+  <input id="transientPitch" type="range"
+    min="200" max="10000" value="3000">
+  <span id="transientPitchValue">3000</span>
+</label>
 
+<label>
+  Decay
+  <input id="transientDecay" type="range"
+    min="0.5" max="8" step="0.1" value="2.5">
+  <span id="transientDecayValue">2.5</span>
+</label>
 <button id="triggerTransient">Trigger Transient</button>
 
   
