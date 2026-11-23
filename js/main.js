@@ -444,12 +444,12 @@ const ravenGesture = {
         [1.8, 0]
       ]
     },
-    articulation: {
+    {articulation: {
         attack: 0.08,
         hold: 0.12,
         release: 0.18
       }
-
+    }
   ]
 };
 
