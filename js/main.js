@@ -432,7 +432,12 @@ const ravenGesture = {
         [1.3, 0.65],
         [1.65, 0.65],
         [1.9, 0]
-      ]
+      ],
+      articulation: {
+        attack: 0.08,
+        hold: 0.12,
+        release: 0.18
+      }
     },
     {
       type: "curve",
@@ -672,6 +677,40 @@ if (event.articulation) {
   scheduleCurve(param, modulatedPoints, scale);
 }
 
+
+  function scheduleArticulation(event) {
+    const articulation = event.articulation;
+
+    const start = event.amplitude[0][0];
+    const end = event.amplitude[event.amplitude.length - 1][0];
+
+    const attack = articulation.attack ?? 0.05;
+    const hold = articulation.hold ?? 0.1;
+    const release = articulation.release ?? 0.1;
+
+    const peak = voicePeak;
+
+    // Begin closed.
+    voiceAmplitude.setValueAtTime(0, now + start);
+
+    // Open gradually.
+    voiceAmplitude.linearRampToValueAtTime(
+      peak,
+      now + start + attack
+    );
+
+    // Sustain.
+    voiceAmplitude.setValueAtTime(
+      peak,
+      now + start + attack + hold
+    );
+
+    // Close gradually.
+    voiceAmplitude.linearRampToValueAtTime(
+      0,
+      now + start + attack + hold + release
+    );
+  }
 
   // Interpret each event in the gesture score.
   for (const event of ravenGesture.events) {
