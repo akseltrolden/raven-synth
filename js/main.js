@@ -376,14 +376,14 @@ const ravenGesture = {
         [1.0, 0]
       ],
       frequencyMod: {
-      rate: 5,
-      depth: 90,
+      rate: 9,
+      depth: 180,
       waveform: "random"
       },
 
       amplitudeMod: {
-      rate: 7,
-      depth: 0.2,
+      rate: 12,
+      depth: 0.75,
       waveform: "random"
       }
     },
