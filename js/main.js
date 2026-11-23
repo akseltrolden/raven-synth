@@ -400,6 +400,7 @@ const ravenGesture = {
         waveform: "sine"
       }
     ],
+    },
 
     // 4. Paired clicks
     {
