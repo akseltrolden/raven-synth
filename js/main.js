@@ -515,21 +515,19 @@ function performRavenGesture() {
   }
 
 
-if (event.articulation) {
-  scheduleArticulation(event);
-} else {
-  scheduleVoiceCurve(
-    voiceAmplitude,
-    event.amplitude,
-    voicePeak,
-    event.amplitudeMod,
-    "amplitude"
-  );
-} {
-  if (!modulation) {
-    scheduleCurve(param, points, scale);
-    return;
-  }
+  // Schedule a modulated voice curve.
+  function scheduleVoiceCurve(
+    param,
+    points,
+    scale = 1,
+    modulation,
+    mode = "frequency"
+  ) {
+    if (!modulation) {
+      scheduleCurve(param, points, scale);
+      return;
+    }
+
 
   // Accept either one modulation or an array of layers.
   const layers = Array.isArray(modulation)
