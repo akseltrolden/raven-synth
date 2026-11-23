@@ -508,13 +508,17 @@ function performRavenGesture() {
   }
 
 
-function scheduleVoiceCurve(
-  param,
-  points,
-  scale,
-  modulation,
-  mode
-) {
+if (event.articulation) {
+  scheduleArticulation(event);
+} else {
+  scheduleVoiceCurve(
+    voiceAmplitude,
+    event.amplitude,
+    voicePeak,
+    event.amplitudeMod,
+    "amplitude"
+  );
+} {
   if (!modulation) {
     scheduleCurve(param, points, scale);
     return;
