@@ -680,40 +680,44 @@ if (event.articulation) {
 }
 
 
-  function scheduleArticulation(event) {
-    const articulation = event.articulation;
+function scheduleArticulation(event) {
+  const articulation = event.articulation;
 
-    const start = event.amplitude[0][0];
-    const end = event.amplitude[event.amplitude.length - 1][0];
+  const start = event.amplitude[0][0];
+  const end = event.amplitude[event.amplitude.length - 1][0];
 
-    const attack = articulation.attack ?? 0.05;
-    const hold = articulation.hold ?? 0.1;
-    const release = articulation.release ?? 0.1;
+  const attack = articulation.attack ?? 0.05;
+  const hold = articulation.hold ?? 0.1;
+  const release = articulation.release ?? 0.1;
 
-    const peak = voicePeak;
+  const available = end - start;
+  const total = attack + hold + release;
 
-    // Begin closed.
-    voiceAmplitude.setValueAtTime(0, now + start);
+  const scale = total > available
+    ? available / total
+    : 1;
 
-    // Open gradually.
-    voiceAmplitude.linearRampToValueAtTime(
-      peak,
-      now + start + attack
-    );
+  const a = attack * scale;
+  const h = hold * scale;
+  const r = release * scale;
 
-    // Sustain.
-    voiceAmplitude.setValueAtTime(
-      peak,
-      now + start + attack + hold
-    );
+  voiceAmplitude.setValueAtTime(0, now + start);
 
-    // Close gradually.
-    voiceAmplitude.linearRampToValueAtTime(
-      0,
-      now + start + attack + hold + release
-    );
-  }
+  voiceAmplitude.linearRampToValueAtTime(
+    voicePeak,
+    now + start + a
+  );
 
+  voiceAmplitude.setValueAtTime(
+    voicePeak,
+    now + start + a + h
+  );
+
+  voiceAmplitude.linearRampToValueAtTime(
+    0,
+    now + start + a + h + r
+  );
+}
   // Interpret each event in the gesture score.
   for (const event of ravenGesture.events) {
 
