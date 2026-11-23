@@ -432,13 +432,13 @@ const ravenGesture = {
         [1.3, 0.65],
         [1.65, 0.65],
         [1.9, 0]
-      ],
-      articulation: {
+      ]
+      
+    },articulation: {
         attack: 0.08,
         hold: 0.12,
         release: 0.18
-      }
-    },
+      },
 {
       type: "curve",
       target: "pressure",
