@@ -375,20 +375,31 @@ const ravenGesture = {
         [0.85, 1],
         [1.0, 0]
       ],
-      frequencyMod: {
-      rate: 9,
-      depth: 180,
-      waveform: "flutter",
-      irregularity: 0.3
-      },
-
-      amplitudeMod: {
-      rate: 12,
-      depth: 0.75,
-      waveform: "flutter",
-      irregularity: 0.4
+      frequencyMod: [
+      {
+        rate: 2,
+        depth: 100,
+        waveform: "drift"
+       },
+       {
+        rate: 9,
+        depth: 45,
+        waveform: "flutter",
+        irregularity: 0.3
       }
-    },
+    ],
+      amplitudeMod: [
+      {
+        rate: 12,
+        depth: 0.3,
+        waveform: "random"
+      },
+      {
+        rate: 5,
+        depth: 0.2,
+        waveform: "sine"
+      }
+    ],
 
     // 4. Paired clicks
     {
@@ -495,158 +506,167 @@ function performRavenGesture() {
     });
   }
 
-  function scheduleVoiceCurve(
-    param,
-    points,
-    scale,
-    modulation,
-    mode
-  ) {
-  // No modulation? Use the ordinary scheduler.
-    if (!modulation) {
-      scheduleCurve(param, points, scale);
-      return;
+
+function scheduleVoiceCurve(
+  param,
+  points,
+  scale,
+  modulation,
+  mode
+) {
+  if (!modulation) {
+    scheduleCurve(param, points, scale);
+    return;
+  }
+
+  // Accept either one modulation or an array of layers.
+  const layers = Array.isArray(modulation)
+    ? modulation
+    : [modulation];
+
+  const start = points[0][0];
+  const end = points[points.length - 1][0];
+  const duration = end - start;
+
+  function interpolate(time) {
+    for (let i = 0; i < points.length - 1; i++) {
+      const [t1, v1] = points[i];
+      const [t2, v2] = points[i + 1];
+
+      if (time <= t2) {
+        const fraction = (time - t1) / (t2 - t1);
+        return v1 + (v2 - v1) * fraction;
+      }
     }
 
-    const start = points[0][0];
-    const end = points[points.length - 1][0];
-    const duration = end - start;
+    return points[points.length - 1][1];
+  }
 
-    // Sample the original curve and apply modulation.
-    function interpolate(time) {
-      for (let i = 0; i < points.length - 1; i++) {
-        const [t1, v1] = points[i];
-        const [t2, v2] = points[i + 1];
+  // Give each modulation layer its own independent state.
+  const states = layers.map(mod => {
+    const interval = 1 / Math.max(0.01, mod.rate || 1);
 
-        if (time <= t2) {
-          const fraction = (time - t1) / (t2 - t1);
-          return v1 + (v2 - v1) * fraction;
+    return {
+      driftFrom: Math.random() * 2 - 1,
+      driftTo: Math.random() * 2 - 1,
+      driftStart: 0,
+      driftEnd: interval,
+
+      flutterStart: 0,
+      flutterEnd: interval,
+      flutterAmplitude: 1
+    };
+  });
+
+  function getWave(mod, state, elapsed) {
+    const rate = Math.max(0.01, mod.rate || 1);
+    const phase = elapsed * rate;
+    const cycle = phase - Math.floor(phase);
+
+    switch (mod.waveform || "sine") {
+      case "sine":
+        return Math.sin(phase * Math.PI * 2);
+
+      case "triangle":
+        return 1 - 4 * Math.abs(cycle - 0.5);
+
+      case "sawtooth":
+        return 2 * cycle - 1;
+
+      case "square":
+        return cycle < 0.5 ? 1 : -1;
+
+      case "random":
+        return Math.random() * 2 - 1;
+
+      case "drift": {
+        const interval = 1 / rate;
+
+        while (elapsed >= state.driftEnd) {
+          state.driftFrom = state.driftTo;
+          state.driftTo = Math.random() * 2 - 1;
+          state.driftStart = state.driftEnd;
+          state.driftEnd += interval;
         }
+
+        const progress =
+          (elapsed - state.driftStart) /
+          (state.driftEnd - state.driftStart);
+
+        const smooth =
+          progress * progress * (3 - 2 * progress);
+
+        return state.driftFrom +
+          (state.driftTo - state.driftFrom) * smooth;
       }
 
-      return points[points.length - 1][1];
+      case "flutter": {
+        const irregularity = Math.max(
+          0,
+          Math.min(1, mod.irregularity ?? 0.2)
+        );
+
+        while (elapsed >= state.flutterEnd) {
+          state.flutterStart = state.flutterEnd;
+
+          const rateVariation =
+            1 + (Math.random() * 2 - 1) *
+            irregularity * 0.25;
+
+          state.flutterEnd =
+            state.flutterStart +
+            1 / Math.max(0.01, rate * rateVariation);
+
+          state.flutterAmplitude =
+            1 + (Math.random() * 2 - 1) *
+            irregularity * 0.3;
+        }
+
+        const progress =
+          (elapsed - state.flutterStart) /
+          (state.flutterEnd - state.flutterStart);
+
+        return Math.sin(progress * Math.PI * 2) *
+          state.flutterAmplitude;
+      }
+
+      default:
+        return Math.sin(phase * Math.PI * 2);
     }
+  }
 
-    const sampleCount = Math.max(
-      1,
-      Math.ceil(duration / 0.01)
-    );
+  const sampleCount = Math.max(
+    1,
+    Math.ceil(duration / 0.01)
+  );
 
-    const modulatedPoints = [];
+  const modulatedPoints = [];
 
-    let driftCurrent = Math.random() * 2 - 1;
-    let driftTarget = Math.random() * 2 - 1;
-    let nextDriftTime = 0;
-    let flutterCycleStart = 0;
-    let flutterCycleEnd = 1 / Math.max(0.01, modulation.rate);
-    let flutterAmplitude = 1;
-    
-    for (let i = 0; i <= sampleCount; i++) {
-      const time = start + duration * i / sampleCount;
-      const elapsed = time - start;
+  for (let i = 0; i <= sampleCount; i++) {
+    const time = start + duration * i / sampleCount;
+    const elapsed = time - start;
 
-      const phase = elapsed * modulation.rate;
-      const cycle = phase - Math.floor(phase);
+    let value = interpolate(time);
 
-      let wave;
-
-      switch (modulation.waveform || "sine") {
-        case "sine":
-          wave = Math.sin(phase * Math.PI * 2);
-          break;
-
-        case "triangle":
-          wave = 1 - 4 * Math.abs(cycle - 0.5);
-          break;
-
-        case "sawtooth":
-          wave = 2 * cycle - 1;
-          break;
-
-        case "square":
-          wave = cycle < 0.5 ? 1 : -1;
-          break;
-
-        case "random":
-          wave = Math.random() * 2 - 1;
-          break;
-
-        case "drift": {
-          const driftInterval = 1 / modulation.rate;
-
-          if (elapsed >= nextDriftTime) {
-            driftCurrent = driftTarget;
-            driftTarget = Math.random() * 2 - 1;
-            nextDriftTime += driftInterval;
-          }
-
-          const progress =
-            (elapsed - (nextDriftTime - driftInterval)) /
-            driftInterval;
-
-          const smoothProgress =
-            progress * progress * (3 - 2 * progress);
-
-          wave =
-            driftCurrent +
-            (driftTarget - driftCurrent) * smoothProgress;
-
-          break;
-        }
-
-          case "flutter": {
-            const irregularity = Math.max(
-              0,
-              Math.min(1, modulation.irregularity ?? 0.2)
-            );
-
-            // Begin a new cycle when the previous one ends.
-            while (elapsed >= flutterCycleEnd) {
-              flutterCycleStart = flutterCycleEnd;
-
-              const rateVariation =
-                1 + (Math.random() * 2 - 1) * irregularity * 0.25;
-
-              const adjustedRate = Math.max(
-                0.01,
-                modulation.rate * rateVariation
-              );
-
-              flutterCycleEnd =
-                flutterCycleStart + 1 / adjustedRate;
-
-              flutterAmplitude =
-                1 + (Math.random() * 2 - 1) * irregularity * 0.3;
-            }
-
-            const progress =
-              (elapsed - flutterCycleStart) /
-              (flutterCycleEnd - flutterCycleStart);
-
-            wave = Math.sin(progress * Math.PI * 2) * flutterAmplitude;
-
-            break;
-          }
-          
-        default:
-          wave = Math.sin(phase * Math.PI * 2);
-      }
-
-      let value = interpolate(time);
+    for (let j = 0; j < layers.length; j++) {
+      const mod = layers[j];
+      const wave = getWave(mod, states[j], elapsed);
 
       if (mode === "frequency") {
-        value += wave * modulation.depth;
+        value += wave * mod.depth;
       }
 
       if (mode === "amplitude") {
-        value *= 1 + wave * modulation.depth;
+        value *= Math.max(0, 1 + wave * mod.depth);
       }
-
-      modulatedPoints.push([time, value]);
     }
 
-    scheduleCurve(param, modulatedPoints, scale);
+    modulatedPoints.push([time, value]);
   }
+
+  scheduleCurve(param, modulatedPoints, scale);
+}
+
 
   // Interpret each event in the gesture score.
   for (const event of ravenGesture.events) {
