@@ -378,13 +378,15 @@ const ravenGesture = {
       frequencyMod: {
       rate: 9,
       depth: 180,
-      waveform: "drift"
+      waveform: "flutter",
+      irregularity: 0.3
       },
 
       amplitudeMod: {
       rate: 12,
       depth: 0.75,
-      waveform: "drift"
+      waveform: "flutter",
+      irregularity: 0.4
       }
     },
 
@@ -535,6 +537,9 @@ function performRavenGesture() {
     let driftCurrent = Math.random() * 2 - 1;
     let driftTarget = Math.random() * 2 - 1;
     let nextDriftTime = 0;
+    let flutterCycleStart = 0;
+    let flutterCycleEnd = 1 / Math.max(0.01, modulation.rate);
+    let flutterAmplitude = 1;
     
     for (let i = 0; i <= sampleCount; i++) {
       const time = start + duration * i / sampleCount;
@@ -588,6 +593,40 @@ function performRavenGesture() {
 
           break;
         }
+
+          case "flutter": {
+            const irregularity = Math.max(
+              0,
+              Math.min(1, modulation.irregularity ?? 0.2)
+            );
+
+            // Begin a new cycle when the previous one ends.
+            while (elapsed >= flutterCycleEnd) {
+              flutterCycleStart = flutterCycleEnd;
+
+              const rateVariation =
+                1 + (Math.random() * 2 - 1) * irregularity * 0.25;
+
+              const adjustedRate = Math.max(
+                0.01,
+                modulation.rate * rateVariation
+              );
+
+              flutterCycleEnd =
+                flutterCycleStart + 1 / adjustedRate;
+
+              flutterAmplitude =
+                1 + (Math.random() * 2 - 1) * irregularity * 0.3;
+            }
+
+            const progress =
+              (elapsed - flutterCycleStart) /
+              (flutterCycleEnd - flutterCycleStart);
+
+            wave = Math.sin(progress * Math.PI * 2) * flutterAmplitude;
+
+            break;
+          }
           
         default:
           wave = Math.sin(phase * Math.PI * 2);
