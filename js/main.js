@@ -432,8 +432,12 @@ const ravenGesture = {
         [1.3, 0.65],
         [1.65, 0.65],
         [1.9, 0]
-      ]
-      
+      ],
+      articulation: {
+        attack: 0.08,
+        hold: 0.12,
+        release: 0.18
+      }
     },
 {
       type: "curve",
@@ -444,12 +448,8 @@ const ravenGesture = {
         [1.8, 0]
       ]
     },
-    {articulation: {
-        attack: 0.08,
-        hold: 0.12,
-        release: 0.18
-      }
-    }
+    
+    
   ]
 };
 
@@ -761,7 +761,9 @@ if (event.articulation) {
       "frequency"
     );
 
-    scheduleVoiceCurve(
+    if (event.articulation) {
+      scheduleArticulation(event);
+    } else {scheduleVoiceCurve(
       voiceAmplitude,
       event.amplitude,
       voicePeak,
