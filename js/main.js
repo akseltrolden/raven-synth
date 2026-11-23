@@ -439,7 +439,7 @@ const ravenGesture = {
         release: 0.18
       }
     },
-    {
+{
       type: "curve",
       target: "pressure",
       points: [
