@@ -377,12 +377,14 @@ const ravenGesture = {
       ],
       frequencyMod: {
       rate: 5,
-      depth: 90
+      depth: 90,
+      waveform: "random"
       },
 
       amplitudeMod: {
       rate: 7,
-      depth: 0.2
+      depth: 0.2,
+      waveform: "random"
       }
     },
 
@@ -534,9 +536,35 @@ function performRavenGesture() {
       const time = start + duration * i / sampleCount;
       const elapsed = time - start;
 
-      const wave = Math.sin(
-        elapsed * modulation.rate * Math.PI * 2
-      );
+      const phase = elapsed * modulation.rate;
+      const cycle = phase - Math.floor(phase);
+
+      let wave;
+
+      switch (modulation.waveform || "sine") {
+        case "sine":
+          wave = Math.sin(phase * Math.PI * 2);
+          break;
+
+        case "triangle":
+          wave = 1 - 4 * Math.abs(cycle - 0.5);
+          break;
+
+        case "sawtooth":
+          wave = 2 * cycle - 1;
+          break;
+
+        case "square":
+          wave = cycle < 0.5 ? 1 : -1;
+          break;
+
+        case "random":
+          wave = Math.random() * 2 - 1;
+          break;
+
+        default:
+          wave = Math.sin(phase * Math.PI * 2);
+      }
 
       let value = interpolate(time);
 
