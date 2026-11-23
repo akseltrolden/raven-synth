@@ -378,13 +378,13 @@ const ravenGesture = {
       frequencyMod: {
       rate: 9,
       depth: 180,
-      waveform: "random"
+      waveform: "drift"
       },
 
       amplitudeMod: {
       rate: 12,
       depth: 0.75,
-      waveform: "random"
+      waveform: "drift"
       }
     },
 
@@ -532,6 +532,10 @@ function performRavenGesture() {
 
     const modulatedPoints = [];
 
+    let driftCurrent = Math.random() * 2 - 1;
+    let driftTarget = Math.random() * 2 - 1;
+    let nextDriftTime = 0;
+    
     for (let i = 0; i <= sampleCount; i++) {
       const time = start + duration * i / sampleCount;
       const elapsed = time - start;
@@ -562,6 +566,29 @@ function performRavenGesture() {
           wave = Math.random() * 2 - 1;
           break;
 
+        case "drift": {
+          const driftInterval = 1 / modulation.rate;
+
+          if (elapsed >= nextDriftTime) {
+            driftCurrent = driftTarget;
+            driftTarget = Math.random() * 2 - 1;
+            nextDriftTime += driftInterval;
+          }
+
+          const progress =
+            (elapsed - (nextDriftTime - driftInterval)) /
+            driftInterval;
+
+          const smoothProgress =
+            progress * progress * (3 - 2 * progress);
+
+          wave =
+            driftCurrent +
+            (driftTarget - driftCurrent) * smoothProgress;
+
+          break;
+        }
+          
         default:
           wave = Math.sin(phase * Math.PI * 2);
       }
