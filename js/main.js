@@ -376,30 +376,30 @@ const ravenGesture = {
         [1.0, 0]
       ],
       frequencyMod: [
-      {
-        rate: 2,
-        depth: 100,
-        waveform: "drift"
-       },
-       {
-        rate: 9,
-        depth: 45,
-        waveform: "flutter",
-        irregularity: 0.3
-      }
-    ],
+        {
+          rate: 2,
+          depth: 100,
+          waveform: "drift"
+         },
+         {
+          rate: 9,
+          depth: 45,
+          waveform: "flutter",
+          irregularity: 0.3
+        }
+      ],
       amplitudeMod: [
-      {
-        rate: 12,
-        depth: 0.3,
-        waveform: "random"
-      },
-      {
-        rate: 5,
-        depth: 0.2,
-        waveform: "sine"
-      }
-    ],
+        {
+          rate: 12,
+          depth: 0.3,
+          waveform: "random"
+        },
+        {
+          rate: 5,
+          depth: 0.2,
+          waveform: "sine"
+        }
+      ],
     },
 
     // 4. Paired clicks
