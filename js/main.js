@@ -761,16 +761,17 @@ if (event.articulation) {
       "frequency"
     );
 
-    if (event.articulation) {
-      scheduleArticulation(event);
-    } else {scheduleVoiceCurve(
-      voiceAmplitude,
-      event.amplitude,
-      voicePeak,
-      event.amplitudeMod,
-      "amplitude"
-    );
-  }}
+if (event.articulation) {
+  scheduleArticulation(event);
+} else {
+  scheduleVoiceCurve(
+    voiceAmplitude,
+    event.amplitude,
+    voicePeak,
+    event.amplitudeMod,
+    "amplitude"
+  );
+}
 }
 
   // Restore the user's original settings.
