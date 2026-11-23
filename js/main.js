@@ -350,13 +350,13 @@ const ravenGesture = {
 
     // 2. Turbulent airflow burst
     {
-      type: "curve",
-      target: "pressure",
+      type: "turbulence",
+      at: 0.08,
       points: [
-        [0.08, 0],
-        [0.13, 0.48],
-        [0.23, 0.48],
-        [0.34, 0]
+        [0, 0],
+        [0.05, 0.48],
+        [0.15, 0.48],
+        [0.26, 0]
       ]
     },
 
@@ -497,7 +497,17 @@ function performRavenGesture() {
 
       gestureTimers.push(timer);
     }
+      
+    else if (event.type === "turbulence") {
+      const shiftedPoints = event.points.map(
+        ([time, value]) => [
+          event.at + time,
+          value
+        ]
+      );
 
+      scheduleCurve(pressure, shiftedPoints);
+    }
     else if (event.type === "curve") {
       const target =
         event.target === "pressure"
