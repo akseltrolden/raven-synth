@@ -374,7 +374,16 @@ const ravenGesture = {
         [0.48, 1],
         [0.85, 1],
         [1.0, 0]
-      ]
+      ],
+      frequencyMod: {
+      rate: 5,
+      depth: 90
+      },
+
+      amplitudeMod: {
+      rate: 7,
+      depth: 0.2
+      }
     },
 
     // 4. Paired clicks
@@ -482,6 +491,69 @@ function performRavenGesture() {
     });
   }
 
+  function scheduleVoiceCurve(
+    param,
+    points,
+    scale,
+    modulation,
+    mode
+  ) {
+  // No modulation? Use the ordinary scheduler.
+    if (!modulation) {
+      scheduleCurve(param, points, scale);
+      return;
+    }
+
+    const start = points[0][0];
+    const end = points[points.length - 1][0];
+    const duration = end - start;
+
+    // Sample the original curve and apply modulation.
+    function interpolate(time) {
+      for (let i = 0; i < points.length - 1; i++) {
+        const [t1, v1] = points[i];
+        const [t2, v2] = points[i + 1];
+
+        if (time <= t2) {
+          const fraction = (time - t1) / (t2 - t1);
+          return v1 + (v2 - v1) * fraction;
+        }
+      }
+
+      return points[points.length - 1][1];
+    }
+
+    const sampleCount = Math.max(
+      1,
+      Math.ceil(duration / 0.01)
+    );
+
+    const modulatedPoints = [];
+
+    for (let i = 0; i <= sampleCount; i++) {
+      const time = start + duration * i / sampleCount;
+      const elapsed = time - start;
+
+      const wave = Math.sin(
+        elapsed * modulation.rate * Math.PI * 2
+      );
+
+      let value = interpolate(time);
+
+      if (mode === "frequency") {
+        value += wave * modulation.depth;
+      }
+
+      if (mode === "amplitude") {
+        value *= 1 + wave * modulation.depth;
+      }
+
+      modulatedPoints.push([time, value]);
+    }
+
+    scheduleCurve(param, modulatedPoints, scale);
+  }
+
   // Interpret each event in the gesture score.
   for (const event of ravenGesture.events) {
 
@@ -519,19 +591,25 @@ function performRavenGesture() {
       }
     }
 
-    else if (event.type === "voice") {
-      scheduleCurve(
-        voiceFrequency,
-        event.frequency
-      );
+    
+  else if (event.type === "voice") {
+    scheduleVoiceCurve(
+      voiceFrequency,
+      event.frequency,
+      1,
+      event.frequencyMod,
+      "frequency"
+    );
 
-      scheduleCurve(
-        voiceAmplitude,
-        event.amplitude,
-        voicePeak
-      );
-    }
+    scheduleVoiceCurve(
+      voiceAmplitude,
+      event.amplitude,
+      voicePeak,
+      event.amplitudeMod,
+      "amplitude"
+    );
   }
+}
 
   // Restore the user's original settings.
   pressure.setValueAtTime(
