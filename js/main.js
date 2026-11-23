@@ -770,7 +770,7 @@ if (event.articulation) {
       event.amplitudeMod,
       "amplitude"
     );
-  }
+  }}
 }
 
   // Restore the user's original settings.
